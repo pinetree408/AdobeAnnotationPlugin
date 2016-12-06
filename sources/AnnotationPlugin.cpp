@@ -86,8 +86,16 @@ ACCB1 void ACCB2 MyPluginCommandSave(void *clientData)
 	}
 	else {
 
+		// ASFile fileinfo = PDDocGetFile(pdDoc);
+		// ASFileGetEOF();
+
 		// if a PDF is open, get its number of pages
 		PDDoc pdDoc = AVDocGetPDDoc (avDoc);
+
+		ASFile fileinfo = PDDocGetFile(pdDoc);
+
+		int fileSize = ASFileGetEOF(fileinfo);
+
 		int numPages = PDDocGetNumPages (pdDoc);
 		sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
 
@@ -98,7 +106,13 @@ ACCB1 void ACCB2 MyPluginCommandSave(void *clientData)
 		//ASFileSys fileSys = NULL;
 		ASPathName volatile fdfPathName = NULL;
 		//save annotations
-		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
+
+		char annotationFile[256];
+		sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+		sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
+
+		//fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
+		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
 		ASInt32 errorCode;
 		ASFile volatile fdfFile = NULL;
 		CosDocSaveParamsRec params;
@@ -112,6 +126,8 @@ ACCB1 void ACCB2 MyPluginCommandSave(void *clientData)
 			// if there were no annotations, create a blank doent
 			fdfDoc = CosDocCreate(0);
 		}
+
+		AVAlertNote(annotationFile);
 
 		// Create/Open the file
 		errorCode = ASFileSysOpenFile(fileSys, fdfPathName, ASFILE_CREATE | ASFILE_WRITE, (ASFile*)&fdfFile);
@@ -154,17 +170,28 @@ ACCB1 void ACCB2 MyPluginCommandLoad(void *clientData)
 
 		// if a PDF is open, get its number of pages
 		PDDoc pdDoc = AVDocGetPDDoc(avDoc);
+
+		ASFile fileinfo = PDDocGetFile(pdDoc);
+
+		int fileSize = ASFileGetEOF(fileinfo);
+
+
 		int numPages = PDDocGetNumPages(pdDoc);
 		sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
 
-		ASInt32 test;
-		CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
+		//ASInt32 test;
+		//CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
 
 		ASFileSys fileSys = ASGetDefaultFileSys();
 		ASPathName volatile fdfPathName = NULL;
 		//save annotations
-		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
 
+		char annotationFile[256];
+		sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+		sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
+
+		//fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
+		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
 		CosDocOpenParamsRec params;
 
 		// Initialize save params
@@ -177,6 +204,8 @@ ACCB1 void ACCB2 MyPluginCommandLoad(void *clientData)
 		CosDoc testDoc = CosDocOpenWithParams(&params);
 
 		PDDocImportCosDocNotes(pdDoc, testDoc, NULL, NULL, NULL, NULL, NULL, NULL);
+
+		CosDocClose(testDoc);
 
 	}
 

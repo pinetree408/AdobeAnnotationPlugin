@@ -36,6 +36,8 @@ ACCB1 ASBool ACCB2 PluginMenuItem(char* MyMenuItemTitle, char* MyMenuItemName);
 // callback functions implemented in file "BasicPlugin.cpp"
 extern ACCB1 void ACCB2 MyPluginCommandSave(void *clientData);
 extern ACCB1 void ACCB2 MyPluginCommandLoad(void *clientData);
+extern ACCB1 void ACCB2 MyPluginCommandSaveTest();
+extern ACCB1 void ACCB2 MyPluginCommandLoadTest();
 extern ACCB1 ASBool ACCB2 MyPluginIsEnabled(void *clientData);
 extern ACCB1 ASBool ACCB2 MyPluginSetmenu();
 
@@ -152,6 +154,9 @@ ACCB1 ASBool ACCB2 PIHandshake(Uns32 handshakeVersion, void *handshakeData)
 
 		/* Perform your plug-in's initialization in here */
 		hsData->initCallback = (void*)ASCallbackCreateProto(PIInitProcType, &PluginInit);
+
+		AVAppRegisterNotification(AVDocDidOpenNSEL, gExtensionID, MyPluginCommandLoadTest, NULL);
+		AVAppRegisterNotification(AVDocWillCloseNSEL, gExtensionID, MyPluginCommandSaveTest, NULL);
 
 		/* Perform any memory freeing or state saving on "quit" in here */
 		hsData->unloadCallback = (void*)ASCallbackCreateProto(PIUnloadProcType, &PluginUnload);

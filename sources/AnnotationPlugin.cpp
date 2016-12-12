@@ -229,3 +229,148 @@ ACCB1 ASBool ACCB2 MyPluginIsEnabled(void *clientData)
 	/* return (AVAppGetActiveDoc() != NULL); */
 }
 
+ACCB1 void ACCB2 MyPluginCommandLoadTest()
+{
+	// get this plugin's name for display
+	ASAtom NameAtom = ASExtensionGetRegisteredName(gExtensionID);
+	const char * name = ASAtomGetString(NameAtom);
+	char str[256];
+	sprintf(str, "This menu item is added by plugin test %s.\n", name);
+
+	// try to get front PDF document 
+	AVDoc avDoc = AVAppGetActiveDoc();
+
+	if (avDoc == NULL) {
+		// if no doc is loaded, make a message.
+		strcat(str, "There is no PDF document loaded in Acrobat.");
+	}
+	else {
+
+		// if a PDF is open, get its number of pages
+		PDDoc pdDoc = AVDocGetPDDoc(avDoc);
+
+		ASFile fileinfo = PDDocGetFile(pdDoc);
+
+		int fileSize = ASFileGetEOF(fileinfo);
+
+
+		int numPages = PDDocGetNumPages(pdDoc);
+		sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
+
+		//ASInt32 test;
+		//CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
+
+		ASFileSys fileSys = ASGetDefaultFileSys();
+		ASPathName volatile fdfPathName = NULL;
+		//save annotations
+
+		char annotationFile[256];
+		sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+		sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
+
+		//fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
+		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
+		CosDocOpenParamsRec params;
+
+		// Initialize save params
+		memset(&params, 0, sizeof(CosDocOpenParamsRec));
+		params.size = sizeof(CosDocOpenParamsRec);
+		params.fileSys = fileSys;
+		params.pathName = fdfPathName;
+		params.headerString = "%FDF-1.2";
+
+		CosDoc testDoc = CosDocOpenWithParams(&params);
+
+		PDDocImportCosDocNotes(pdDoc, testDoc, NULL, NULL, NULL, NULL, NULL, NULL);
+
+		CosDocClose(testDoc);
+
+	}
+
+	// display message
+	AVAlertNote(str);
+
+	return;
+}
+
+ACCB1 void ACCB2 MyPluginCommandSaveTest()
+{
+	// get this plugin's name for display
+	ASAtom NameAtom = ASExtensionGetRegisteredName(gExtensionID);
+	const char * name = ASAtomGetString(NameAtom);
+	char str[256];
+	sprintf(str, "This menu item is added by plugin %s.\n", name);
+
+	// try to get front PDF document 
+	AVDoc avDoc = AVAppGetActiveDoc();
+
+	if (avDoc == NULL) {
+		// if no doc is loaded, make a message.
+		strcat(str, "There is no PDF document loaded in Acrobat.");
+	}
+	else {
+
+		// ASFile fileinfo = PDDocGetFile(pdDoc);
+		// ASFileGetEOF();
+
+		// if a PDF is open, get its number of pages
+		PDDoc pdDoc = AVDocGetPDDoc(avDoc);
+
+		ASFile fileinfo = PDDocGetFile(pdDoc);
+
+		int fileSize = ASFileGetEOF(fileinfo);
+
+		int numPages = PDDocGetNumPages(pdDoc);
+		sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
+
+		ASInt32 test;
+		CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
+
+		ASFileSys fileSys = ASGetDefaultFileSys();
+		//ASFileSys fileSys = NULL;
+		ASPathName volatile fdfPathName = NULL;
+		//save annotations
+
+		char annotationFile[256];
+		sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+		sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
+
+		//fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
+		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
+		ASInt32 errorCode;
+		ASFile volatile fdfFile = NULL;
+		CosDocSaveParamsRec params;
+
+		// Initialize save params
+		memset(&params, 0, sizeof(CosDocSaveParamsRec));
+		params.size = sizeof(CosDocSaveParamsRec);
+		params.header = "%FDF-1.2";
+
+		if (fdfDoc == NULL) {
+			// if there were no annotations, create a blank doent
+			fdfDoc = CosDocCreate(0);
+		}
+
+		AVAlertNote(annotationFile);
+
+		// Create/Open the file
+		errorCode = ASFileSysOpenFile(fileSys, fdfPathName, ASFILE_CREATE | ASFILE_WRITE, (ASFile*)&fdfFile);
+
+		// If we succeeded, save the doc to the file
+		if (errorCode == 0) {
+			CosDocSaveToFile(fdfDoc, fdfFile, cosSaveFullSave, &params);
+			CosDocClose(fdfDoc);
+			ASFileClose(fdfFile);
+		}
+		else {
+			AVAlertNote("Error in saving the fdf file!");
+			ASRaise(ASFileError(fileErrOpenFailed));
+		}
+	}
+
+	// display message
+
+	AVAlertNote(str);
+
+	return;
+}

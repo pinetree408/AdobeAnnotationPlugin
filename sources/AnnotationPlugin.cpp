@@ -17,7 +17,6 @@
   - This file implements the functionality of the BasicPlugin.
 *********************************************************************/
 
-
 // Acrobat Headers.
 #ifndef MAC_PLATFORM
 #include "PIHeaders.h"
@@ -30,184 +29,9 @@
 #pragma  message ("Please specify your own UNIQUE plug-in name. Remove this message if you have already done so")
 const char* MyPluginExtensionName = "ADBE:Annotation_Plugin";
 
-/* A convenient function to add a menu item for your plugin.
-*/
-ACCB1 ASBool ACCB2 PluginMenuItem(char* MyMenuItemTitle, char* MyMenuItemName);
-
 /*-------------------------------------------------------
 	Functions
 r-------------------------------------------------------*/
-
-/* MyPluginSetmenu
-** ------------------------------------------------------
-**
-** Function to set up menu for the plugin.
-** It calls a convenient function PluginMenuItem.
-** Return true if successful, false if failed.
-*/
-ACCB1 ASBool ACCB2 MyPluginSetmenu() {
-    // Add a new menu item under Acrobat SDK submenu.
-    // The new menu item name is "ADBE:BasicPluginMenu", title is "Basic Plugin".
-    // Of course, you can change it to your own.
-    return PluginMenuItem("Basic Plugin", "ADBE:BasicPluginMenu");
-}
-
-
-/**		BasicPlugin project is an Acrobat plugin sample with the minimum code
-	to provide an environment for plugin developers to get started quickly.
-	It can help Acrobat APIs' code testing, too.
-		This file implements the functionality of the BasicPlugin. It adds a
-	new menu item that will show a message of some simple information about
-	the plugin and front PDF document. Users can modify and add code in this
-	file only to make a simple plugin of their own.
-
-		MyPluginCommand is the function to be called when executing a menu.
-	This is the entry point for user's code, just add your code inside.
-
-	@see ASExtensionGetRegisteredName
-	@see AVAppGetActiveDoc
-	@see PDDocGetNumPages
-*/
-ACCB1 void ACCB2 MyPluginCommandSave(void *clientData) {
-    // get this plugin's name for display
-    ASAtom NameAtom = ASExtensionGetRegisteredName (gExtensionID);
-    const char * name = ASAtomGetString(NameAtom);
-    char str[256];
-    sprintf(str,"This menu item is added by plugin %s.\n", name);
-
-    // try to get front PDF document
-    AVDoc avDoc = AVAppGetActiveDoc();
-
-    if(avDoc==NULL) {
-        // if no doc is loaded, make a message.
-        strcat(str,"There is no PDF document loaded in Acrobat.");
-    } else {
-
-        // ASFile fileinfo = PDDocGetFile(pdDoc);
-        // ASFileGetEOF();
-
-        // if a PDF is open, get its number of pages
-        PDDoc pdDoc = AVDocGetPDDoc (avDoc);
-
-        ASFile fileinfo = PDDocGetFile(pdDoc);
-
-        int fileSize = ASFileGetEOF(fileinfo);
-
-        int numPages = PDDocGetNumPages (pdDoc);
-        sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
-
-        ASInt32 test;
-        CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
-
-        ASFileSys fileSys = ASGetDefaultFileSys();
-        //ASFileSys fileSys = NULL;
-        ASPathName volatile fdfPathName = NULL;
-        //save annotations
-
-        char annotationFile[256];
-        sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
-        sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
-
-        //fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
-        fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
-        ASInt32 errorCode;
-        ASFile volatile fdfFile = NULL;
-        CosDocSaveParamsRec params;
-
-        // Initialize save params
-        memset(&params, 0, sizeof(CosDocSaveParamsRec));
-        params.size = sizeof(CosDocSaveParamsRec);
-        params.header = "%FDF-1.2";
-
-        if (fdfDoc == NULL) {
-            // if there were no annotations, create a blank doent
-            fdfDoc = CosDocCreate(0);
-        }
-
-        AVAlertNote(annotationFile);
-
-        // Create/Open the file
-        errorCode = ASFileSysOpenFile(fileSys, fdfPathName, ASFILE_CREATE | ASFILE_WRITE, (ASFile*)&fdfFile);
-
-        // If we succeeded, save the doc to the file
-        if (errorCode == 0) {
-            CosDocSaveToFile(fdfDoc, fdfFile, cosSaveFullSave, &params);
-            CosDocClose(fdfDoc);
-            ASFileClose(fdfFile);
-        } else {
-            AVAlertNote("Error in saving the fdf file!");
-            ASRaise(ASFileError(fileErrOpenFailed));
-        }
-    }
-
-    // display message
-
-    AVAlertNote(str);
-
-    return;
-}
-
-ACCB1 void ACCB2 MyPluginCommandLoad(void *clientData) {
-    // get this plugin's name for display
-    ASAtom NameAtom = ASExtensionGetRegisteredName(gExtensionID);
-    const char * name = ASAtomGetString(NameAtom);
-    char str[256];
-    sprintf(str, "This menu item is added by plugin test %s.\n", name);
-
-    // try to get front PDF document
-    AVDoc avDoc = AVAppGetActiveDoc();
-
-    if (avDoc == NULL) {
-        // if no doc is loaded, make a message.
-        strcat(str, "There is no PDF document loaded in Acrobat.");
-    } else {
-
-        // if a PDF is open, get its number of pages
-        PDDoc pdDoc = AVDocGetPDDoc(avDoc);
-
-        ASFile fileinfo = PDDocGetFile(pdDoc);
-
-        int fileSize = ASFileGetEOF(fileinfo);
-
-
-        int numPages = PDDocGetNumPages(pdDoc);
-        sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
-
-        //ASInt32 test;
-        //CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
-
-        ASFileSys fileSys = ASGetDefaultFileSys();
-        ASPathName volatile fdfPathName = NULL;
-        //save annotations
-
-        char annotationFile[256];
-        sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
-        sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
-
-        //fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
-        fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
-        CosDocOpenParamsRec params;
-
-        // Initialize save params
-        memset(&params, 0, sizeof(CosDocOpenParamsRec));
-        params.size = sizeof(CosDocOpenParamsRec);
-        params.fileSys = fileSys;
-        params.pathName = fdfPathName;
-        params.headerString = "%FDF-1.2";
-
-        CosDoc testDoc = CosDocOpenWithParams(&params);
-
-        PDDocImportCosDocNotes(pdDoc, testDoc, NULL, NULL, NULL, NULL, NULL, NULL);
-
-        CosDocClose(testDoc);
-
-    }
-
-    // display message
-    AVAlertNote(str);
-
-    return;
-}
 
 /* MyPluginIsEnabled
 ** ------------------------------------------------------
@@ -222,12 +46,11 @@ ACCB1 ASBool ACCB2 MyPluginIsEnabled(void *clientData) {
     /* return (AVAppGetActiveDoc() != NULL); */
 }
 
-ACCB1 void ACCB2 MyPluginCommandLoadTest() {
+ACCB1 void ACCB2 MyPluginCommandLoad() {
     // get this plugin's name for display
     ASAtom NameAtom = ASExtensionGetRegisteredName(gExtensionID);
     const char * name = ASAtomGetString(NameAtom);
     char str[256];
-    sprintf(str, "This menu item is added by plugin test %s.\n", name);
 
     // try to get front PDF document
     AVDoc avDoc = AVAppGetActiveDoc();
@@ -244,52 +67,46 @@ ACCB1 void ACCB2 MyPluginCommandLoadTest() {
 
         int fileSize = ASFileGetEOF(fileinfo);
 
-
         int numPages = PDDocGetNumPages(pdDoc);
-        sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
-
-        //ASInt32 test;
-        //CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
+        sprintf(str, "Load - The active PDF document has %d pages.", numPages);
 
         ASFileSys fileSys = ASGetDefaultFileSys();
         ASPathName volatile fdfPathName = NULL;
-        //save annotations
 
         char annotationFile[256];
-        sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+        sprintf(annotationFile, "/Users/user/Desktop/Annotations/");
         sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
 
-        //fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
-        fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
-        CosDocOpenParamsRec params;
+		fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
 
-        // Initialize save params
-        memset(&params, 0, sizeof(CosDocOpenParamsRec));
-        params.size = sizeof(CosDocOpenParamsRec);
-        params.fileSys = fileSys;
-        params.pathName = fdfPathName;
-        params.headerString = "%FDF-1.2";
+		ASInt32 errorCode;
+		ASFile volatile fdfFile = NULL;
+		errorCode = ASFileSysOpenFile(fileSys, fdfPathName, ASFILE_READ, (ASFile*)&fdfFile);
 
-        CosDoc testDoc = CosDocOpenWithParams(&params);
-
-        PDDocImportCosDocNotes(pdDoc, testDoc, NULL, NULL, NULL, NULL, NULL, NULL);
-
-        CosDocClose(testDoc);
-
+		// If we succeeded, save the doc to the file
+		if (errorCode == 0) {
+			char jsScript[512];
+			char basePath[256];
+			sprintf(basePath, "C:/Users/user/Desktop/Annotations/");
+			sprintf(basePath, "%s%d.fdf", basePath, fileSize);
+			sprintf(jsScript, "loadAnnot('%s');", basePath);
+			AFExecuteThisScript(pdDoc, jsScript, NULL);
+			ASFileClose(fdfFile);
+		}
     }
 
     // display message
-    AVAlertNote(str);
+    // AVAlertNote(str);
 
     return;
 }
 
-ACCB1 void ACCB2 MyPluginCommandSaveTest() {
+
+ACCB1 void ACCB2 MyPluginCommandSave() {
     // get this plugin's name for display
     ASAtom NameAtom = ASExtensionGetRegisteredName(gExtensionID);
     const char * name = ASAtomGetString(NameAtom);
     char str[256];
-    sprintf(str, "This menu item is added by plugin %s.\n", name);
 
     // try to get front PDF document
     AVDoc avDoc = AVAppGetActiveDoc();
@@ -299,9 +116,6 @@ ACCB1 void ACCB2 MyPluginCommandSaveTest() {
         strcat(str, "There is no PDF document loaded in Acrobat.");
     } else {
 
-        // ASFile fileinfo = PDDocGetFile(pdDoc);
-        // ASFileGetEOF();
-
         // if a PDF is open, get its number of pages
         PDDoc pdDoc = AVDocGetPDDoc(avDoc);
 
@@ -310,21 +124,18 @@ ACCB1 void ACCB2 MyPluginCommandSaveTest() {
         int fileSize = ASFileGetEOF(fileinfo);
 
         int numPages = PDDocGetNumPages(pdDoc);
-        sprintf(str, "%sThe active PDF document has %d pages.", str, numPages);
+        sprintf(str, "Save - The active PDF document has %d pages.", numPages);
 
         ASInt32 test;
         CosDoc fdfDoc = PDDocExportNotes(pdDoc, NULL, NULL, NULL, NULL, NULL, &test);
 
         ASFileSys fileSys = ASGetDefaultFileSys();
-        //ASFileSys fileSys = NULL;
         ASPathName volatile fdfPathName = NULL;
-        //save annotations
 
         char annotationFile[256];
-        sprintf(annotationFile, "/Users/HCIL/Desktop/Annotations/");
+        sprintf(annotationFile, "/Users/user/Desktop/Annotations/");
         sprintf(annotationFile, "%s%d.fdf", annotationFile, fileSize);
 
-        //fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), "/Users/HCIL/Desktop/Annotations/test.fdf", 0);
         fdfPathName = ASFileSysCreatePathName(fileSys, ASAtomFromString("Cstring"), annotationFile, 0);
         ASInt32 errorCode;
         ASFile volatile fdfFile = NULL;
@@ -339,8 +150,6 @@ ACCB1 void ACCB2 MyPluginCommandSaveTest() {
             // if there were no annotations, create a blank doent
             fdfDoc = CosDocCreate(0);
         }
-
-        AVAlertNote(annotationFile);
 
         // Create/Open the file
         errorCode = ASFileSysOpenFile(fileSys, fdfPathName, ASFILE_CREATE | ASFILE_WRITE, (ASFile*)&fdfFile);
@@ -358,7 +167,7 @@ ACCB1 void ACCB2 MyPluginCommandSaveTest() {
 
     // display message
 
-    AVAlertNote(str);
+    // AVAlertNote(str);
 
     return;
 }

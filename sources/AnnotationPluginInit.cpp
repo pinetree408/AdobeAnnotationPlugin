@@ -28,20 +28,15 @@
 /*-------------------------------------------------------
 	Constants/Declarations
 -------------------------------------------------------*/
-// stuff for Menu set up
-static AVMenuItem saveMenuItem = NULL;
-static AVMenuItem loadMenuItem = NULL;
-ACCB1 ASBool ACCB2 PluginMenuItem(char* MyMenuItemTitle, char* MyMenuItemName);
 
 // callback functions implemented in file "BasicPlugin.cpp"
-extern ACCB1 void ACCB2 MyPluginCommandSave(void *clientData);
-extern ACCB1 void ACCB2 MyPluginCommandLoad(void *clientData);
-extern ACCB1 void ACCB2 MyPluginCommandSaveTest();
-extern ACCB1 void ACCB2 MyPluginCommandLoadTest();
+extern ACCB1 void ACCB2 MyPluginCommandSave();
+extern ACCB1 void ACCB2 MyPluginCommandLoad();
 extern ACCB1 ASBool ACCB2 MyPluginIsEnabled(void *clientData);
-extern ACCB1 ASBool ACCB2 MyPluginSetmenu();
 
 extern const char* MyPluginExtensionName;
+
+HFT gAcroFormHFT;
 
 /*-------------------------------------------------------
 	Core Handshake Callbacks
@@ -65,6 +60,7 @@ ACCB1 ASBool ACCB2 PluginExportHFTs(void) {
 	</ul>
 */
 ACCB1 ASBool ACCB2 PluginImportReplaceAndRegister(void) {
+	gAcroFormHFT = Init_AcroFormHFT;
     return true;
 }
 
@@ -83,7 +79,7 @@ ACCB1 ASBool ACCB2 PluginImportReplaceAndRegister(void) {
 ** Return false to cause plug-in loading to stop.
 */
 ACCB1 ASBool ACCB2 PluginInit(void) {
-    return MyPluginSetmenu();
+	return true;
 }
 
 /**
@@ -96,11 +92,6 @@ ACCB1 ASBool ACCB2 PluginInit(void) {
 	@return true to indicate the plug-in unloaded.
 */
 ACCB1 ASBool ACCB2 PluginUnload(void) {
-    if (saveMenuItem)
-        AVMenuItemRemove(saveMenuItem);
-    if (loadMenuItem)
-        AVMenuItemRemove(loadMenuItem);
-
     return true;
 }
 
@@ -149,8 +140,8 @@ ACCB1 ASBool ACCB2 PIHandshake(Uns32 handshakeVersion, void *handshakeData) {
         /* Perform your plug-in's initialization in here */
         hsData->initCallback = (void*)ASCallbackCreateProto(PIInitProcType, &PluginInit);
 
-        AVAppRegisterNotification(AVDocDidOpenNSEL, gExtensionID, MyPluginCommandLoadTest, NULL);
-        AVAppRegisterNotification(AVDocWillCloseNSEL, gExtensionID, MyPluginCommandSaveTest, NULL);
+        AVAppRegisterNotification(AVDocDidOpenNSEL, gExtensionID, MyPluginCommandLoad, NULL);
+        AVAppRegisterNotification(AVDocWillCloseNSEL, gExtensionID, MyPluginCommandSave, NULL);
 
         /* Perform any memory freeing or state saving on "quit" in here */
         hsData->unloadCallback = (void*)ASCallbackCreateProto(PIUnloadProcType, &PluginUnload);
@@ -166,67 +157,3 @@ ACCB1 ASBool ACCB2 PIHandshake(Uns32 handshakeVersion, void *handshakeData) {
     */
     return false;
 }
-
-/*-------------------------------------------------------
-	Menu Utility
--------------------------------------------------------*/
-
-/**
-	A convenient function to add a menu item under Acrobat SDK menu.
-	@param MyMenuItemTitle IN String for the menu item's title.
-	@param MyMenuItemName IN String for the menu item's internal name.
-	@return true if successful, false if failed.
-	@see AVAppGetMenubar
-	@see AVMenuItemNew
-	@see AVMenuItemSetExecuteProc
-	@see AVMenuItemSetComputeEnabledProc
-	@see AVMenubarAcquireMenuItemByName
-	@see AVMenubarAcquireMenuByName
-*/
-ACCB1 ASBool ACCB2 PluginMenuItem(char* MyMenuItemTitle, char* MyMenuItemName) {
-    AVMenubar menubar = AVAppGetMenubar();
-    AVMenu volatile commonMenu = NULL;
-
-    if (!menubar)
-        return false;
-
-    DURING
-
-    char* SaveMenuItemTitle = "Save Annotation";
-    char* SaveMenuItemName = "ADBE:Save";
-
-    // Create our menuitem
-    saveMenuItem = AVMenuItemNew (SaveMenuItemTitle, SaveMenuItemName, NULL, true, NO_SHORTCUT, 0, NULL, gExtensionID);
-    AVMenuItemSetExecuteProc (saveMenuItem, ASCallbackCreateProto(AVExecuteProc, MyPluginCommandSave), NULL);
-    AVMenuItemSetComputeEnabledProc (saveMenuItem,
-                                     ASCallbackCreateProto(AVComputeEnabledProc, MyPluginIsEnabled), (void *)pdPermEdit);
-
-    char* LoadMenuItemTitle = "Load Annotation";
-    char* LoadMenuItemName = "ADBE:Load";
-
-    loadMenuItem = AVMenuItemNew(LoadMenuItemTitle, LoadMenuItemName, NULL, true, NO_SHORTCUT, 0, NULL, gExtensionID);
-    AVMenuItemSetExecuteProc(loadMenuItem, ASCallbackCreateProto(AVExecuteProc, MyPluginCommandLoad), NULL);
-    AVMenuItemSetComputeEnabledProc(loadMenuItem,
-                                    ASCallbackCreateProto(AVComputeEnabledProc, MyPluginIsEnabled), (void *)pdPermEdit);
-
-    commonMenu = AVMenubarAcquireMenuByName (menubar, "ADBE:Annotation_Plugin_Menu");
-    // if "Acrobat SDK" menu is not existing, create one.
-    if (!commonMenu) {
-        commonMenu = AVMenuNew ("Annotation Plug-in", "ADBE:Annotation_Plugin_Menu", gExtensionID);
-        AVMenubarAddMenu(menubar, commonMenu, APPEND_MENU);
-    }
-
-    AVMenuAddMenuItem(commonMenu, saveMenuItem, APPEND_MENUITEM);
-    AVMenuAddMenuItem(commonMenu, loadMenuItem, APPEND_MENUITEM);
-
-    AVMenuRelease(commonMenu);
-
-    HANDLER
-    if (commonMenu)
-        AVMenuRelease (commonMenu);
-    return false;
-    END_HANDLER
-
-    return true;
-}
-
